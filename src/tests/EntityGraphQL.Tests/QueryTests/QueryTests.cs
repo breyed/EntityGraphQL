@@ -5,6 +5,7 @@ using EntityGraphQL.Compiler;
 using System.Collections.Generic;
 using EntityGraphQL.Tests.ApiVersion1;
 using Microsoft.CSharp.RuntimeBinder;
+using System.Text.Json;
 
 namespace EntityGraphQL.Tests
 {
@@ -158,6 +159,117 @@ namespace EntityGraphQL.Tests
             Assert.Equal(2, nested.GetType().GetFields().Length);
             Assert.Contains((IEnumerable<dynamic>)nested.GetType().GetFields(), f => f.Name == "id");
             Assert.Contains((IEnumerable<dynamic>)nested.GetType().GetFields(), f => f.Name == "name");
+        }
+
+        /// <summary>
+        /// Tests that the schema query used by graphql-code-generator works.
+        /// </summary>
+        /// <seealso href="https://www.graphql-code-generator.com/"/>
+        [Fact]
+        public void CanQuerySchemaForCodeGen() {
+            string gql = @"
+query IntrospectionQuery {
+  __schema {
+    queryType {
+      name
+    }
+    mutationType {
+      name
+    }
+    subscriptionType {
+      name
+    }
+    types {
+      ...FullType
+    }
+    directives {
+      name
+      description
+      locations
+      args {
+        ...InputValue
+      }
+    }
+  }
+}
+
+fragment FullType on __Type {
+  kind
+  name
+  description
+  fields(includeDeprecated: true) {
+    name
+    description
+    args {
+      ...InputValue
+    }
+    type {
+      ...TypeRef
+    }
+    isDeprecated
+    deprecationReason
+  }
+  inputFields {
+    ...InputValue
+  }
+  interfaces {
+    ...TypeRef
+  }
+  enumValues(includeDeprecated: true) {
+    name
+    description
+    isDeprecated
+    deprecationReason
+  }
+  possibleTypes {
+    ...TypeRef
+  }
+}
+
+fragment InputValue on __InputValue {
+  name
+  description
+  type {
+    ...TypeRef
+  }
+  defaultValue
+}
+
+fragment TypeRef on __Type {
+  kind
+  name
+  ofType {
+    kind
+    name
+    ofType {
+      kind
+      name
+      ofType {
+        kind
+        name
+        ofType {
+          kind
+          name
+          ofType {
+            kind
+            name
+            ofType {
+              kind
+              name
+              ofType {
+                kind
+                name
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}";
+            var schema = SchemaBuilder.FromObject<TestDataContext>();
+            var result = schema.ExecuteRequest(new QueryRequest { Query = gql }, new TestDataContext().FillWithTestData(), null, null);
+            var json = JsonSerializer.Serialize(result, new JsonSerializerOptions { IncludeFields = true });
         }
 
         [Fact]
