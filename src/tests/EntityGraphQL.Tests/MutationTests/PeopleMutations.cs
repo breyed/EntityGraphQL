@@ -40,6 +40,13 @@ namespace EntityGraphQL.Tests
         }
 
         [GraphQLMutation]
+        public async Task<Person> AddPersonSingleArgumentFromOtherNamespace(N.OtherNamespaceInputObject nameInput, AgeService ageService)
+        {
+            await System.Threading.Tasks.Task.CompletedTask;
+            return new Person { Name = nameInput.Name };
+        }
+
+        [GraphQLMutation]
 
         public Person AddInputWithChildWithId(ListOfObjectsWithIds nameInput)
         {
@@ -293,6 +300,13 @@ namespace EntityGraphQL.Tests
         public string Name { get; set; }
         public string LastName { get; set; }
         public DateTime? Birthday { get; set; }
+    }
+    namespace N
+    {
+        public class OtherNamespaceInputObject {
+            [Required]
+            public string Name { get; set; }
+        }
     }
 
     public class ListOfObjectsWithIds

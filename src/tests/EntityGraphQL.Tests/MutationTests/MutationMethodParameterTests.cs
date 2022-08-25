@@ -2,6 +2,7 @@
 using EntityGraphQL.Schema;
 using System;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Tests
 {
@@ -88,13 +89,27 @@ namespace EntityGraphQL.Tests
             var gql = new QueryRequest
             {
                 Query = @"mutation AddPersonSingleArgument($nameInput: InputObject) {
-                  addPersonSingleArgument(nameInput: $nameInput) { id name }
-                }",
-                Variables = new QueryVariables {
-                    { "nameInput", new InputObject() { Name = "Frank" } },
-                }
+                  addPersonSingleArgument(nameInput: { Name: ""Frank"" }) { id name }
+                }"
             };
             var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), null, null);
+            Assert.Null(res.Errors);
+        }
+
+        [Fact]
+        public void TestSingleArgumentFromOtherNamespace() {
+            var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+            schemaProvider.AddInputType<N.OtherNamespaceInputObject>(nameof(N.OtherNamespaceInputObject), "");
+            schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderMutationOptions { AutoCreateInputTypes = false });
+            var gql = new QueryRequest {
+                Query = @"mutation AddPersonSingleArgumentFromOtherNamespace {
+                  addPersonSingleArgumentFromOtherNamespace(nameInput: { name: ""Frank"" }) { id name }
+                }"
+            };
+
+            var serviceCollection = new ServiceCollection();
+            serviceCollection.AddSingleton(new AgeService());
+            var res = schemaProvider.ExecuteRequest(gql, new TestDataContext(), serviceCollection.BuildServiceProvider(), null);
             Assert.Null(res.Errors);
         }
 
