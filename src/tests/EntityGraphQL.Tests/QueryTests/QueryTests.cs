@@ -3,6 +3,8 @@ using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System;
 
 namespace EntityGraphQL.Tests
 {
@@ -292,6 +294,29 @@ query {
 
             var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
             Assert.Null(results.Errors);
+        }
+
+        [Fact]
+        public void TestStableQueryPerformance() {
+            var schemaProvider = SchemaBuilder.FromObject<DeepContext>();
+            var gql = new QueryRequest {
+                Query = @"query deep { levelOnes { levelTwo { level3 { name }} }}",
+            };
+
+            var batchTimes = new List<long>();
+            long fastestBatchTime = int.MaxValue;
+            for (int i = 0; i < 500; ++i) {
+                var stopwatch = Stopwatch.StartNew();
+                for (int j = 0; j < 100; ++j) {
+                    var testSchema = new DeepContext();
+                    var results = schemaProvider.ExecuteRequest(gql, testSchema, null, null);
+                    Assert.Null(results.Errors);
+                }
+                long batchTime = stopwatch.ElapsedMilliseconds;
+                batchTimes.Add(batchTime);
+                fastestBatchTime = Math.Min(fastestBatchTime, batchTime);
+            }
+            Assert.Fail(string.Join("\n", batchTimes));
         }
 
         [Fact]
